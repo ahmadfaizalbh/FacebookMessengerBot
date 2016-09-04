@@ -237,8 +237,6 @@ except OperationalError:#No DB exist
               reflections,
               call=call)
 
-
-
 def initiateChat(senderID):
     chat._startNewSession(senderID)
     chat.conversation[senderID].append('Say "Hello"')
@@ -250,6 +248,7 @@ def initiateChat(senderID):
     chat._memory[senderID].update(userInfo)
 
 def respondToClient(senderID,message):
+    recipient = messages.Recipient(recipient_id=senderID)
     chat.attr[senderID]={"match":None,"pmatch":None}
     chat.conversation[senderID].append(message)
     message = message.rstrip(".! \n\t")
@@ -262,11 +261,10 @@ def respondToClient(senderID,message):
 
 def chathandler(request):
     data = json.loads(request.body)
-    senderID=data["entry"][0]["messaging"][0]["sender"]['id']
-    recipient = messages.Recipient(recipient_id=senderID)
     # Send text message
     for i in data["entry"][0]["messaging"]:
-        if "message" in i: 
+        if "message" in i:
+            senderID=i["sender"]['id']
             if not senderID in chat.conversation:
                 #Initiate user info
                 initiateChat(senderID)
