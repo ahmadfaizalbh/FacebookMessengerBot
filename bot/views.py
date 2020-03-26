@@ -5,13 +5,13 @@ from django.views.decorators.csrf import csrf_exempt
 
 from messengerbot import MessengerClient, messages, attachments, templates, elements
 import json,wikipedia,urllib,os
-from chatbot import Chat,reflections,multiFunctionCall
+from chatbot import Chat, register_call
 from .models import *
 from django.db.utils import OperationalError
 
 
-access_token = `< Access token >` 
-VALIDATION_TOKEN=`< VALIDATION_TOKEN >`
+access_token = `< Access token >`
+VALIDATION_TOKEN= `< VALIDATION_TOKEN >`
 api_key = `< API key >`
 
 
@@ -53,16 +53,24 @@ def getType(l):
     except:
         return ""
 
-def tellMeAbout(query,sessionID="general"):
+
+@register_call("tellMeAbout")
+def tell_me_about(query,session_id="general"):
     return about(query)
 
-def whoIs(query,sessionID="general"):
+
+@register_call("whoIs")
+def who_is(query,session_id="general"):
     return about(query,qtype="Person")
 
-def whereIs(query,sessionID="general"):
+
+@register_call("whereIs")
+def where_is(query,session_id="general"):
     return about(query,qtype="Place")
 
-def whatIs(query,sessionID="general"):
+
+@register_call("whatIs")
+def what_is(query,session_id="general"):
     try:
         return wikipedia.summary(query)
     except:
@@ -73,58 +81,52 @@ def whatIs(query,sessionID="general"):
                 pass
     return about(query)
 
-call = multiFunctionCall({"whoIs":whoIs,
-                          "whatIs":whatIs,
-                          "whereIs":whereIs,
-                          "tellMeAbout":tellMeAbout})
 
 class UserMemory:
 
-    def __init__(self,senderID, *args, **kwargs):
-        self.senderID=senderID
+    def __init__(self,sender_id, *args, **kwargs):
+        self.sender_id=sender_id
         self.update(*args, **kwargs)
 
     def __getitem__(self, key):
-        try:return Memory.objects.get(sender__messengerSenderID=self.senderID,key=key).value
+        try:return Memory.objects.get(sender__sender_id=self.sender_id,key=key).value
         except:raise KeyError(key)
 
     def __setitem__(self, key, val):
         try:
-            memory = Memory.objects.get(sender__messengerSenderID=self.senderID,key=key)
+            memory = Memory.objects.get(sender__sender_id=self.sender_id,key=key)
             memory.value = val
             Memory.save()
         except:
-            Memory.objects.create(sender__messengerSenderID=self.senderID,key=key,value=value)
+            Memory.objects.create(sender__sender_id=self.sender_id,key=key,value=value)
 
     def update(self, *args, **kwargs):
-        for k, v in dict(*args, **kwargs).iteritems():
+        for k, v in dict(*args, **kwargs).items():
             self[k] = v
-    
+
     def __delitem__(self, key):
-        try:return Memory.objects.get(sender__messengerSenderID=self.senderID,key=key).delete()
+        try:return Memory.objects.get(sender__sender_id=self.sender_id,key=key).delete()
         except:raise KeyError(key)
 
     def __contains__(self, key):
-        return Memory.objects.filter(sender__messengerSenderID=self.senderID,key=key)
-        
-        
-    
-    
+        return Memory.objects.filter(sender__sender_id=self.sender_id,key=key)
+
+
 class UserConversation:
 
-    def __init__(self,senderID, *args):
-        self.senderID=senderID
+    def __init__(self,sender_id, *args):
+        self.sender_id=sender_id
         self.extend(list(*args))
 
     def __getitem__(self, index):
         try:
-            conv = Conversation.objects.filter(sender__messengerSenderID=self.senderID)
+            conv = Conversation.objects.filter(sender__sender_id=self.sender_id)
             return (conv[index] if index >=0 else conv.order_by('-id')[-index-1]).message
         except:raise IndexError("list index out of range")
 
     def __setitem__(self, index, message):
         try:
-            convs = Conversation.objects.filter(sender__messengerSenderID=self.senderID)
+            convs = Conversation.objects.filter(sender__sender_id=self.sender_id)
             conv = (convs[index] if index <0 else convs.order_by('-id')[-index])
             conv.message = message
             conv.save()
@@ -133,20 +135,19 @@ class UserConversation:
     def extend(self, items):
         for item in items:
             self.append(item)
-            
+
     def append(self, message):
-        Conversation.objects.create(sender=Sender.objects.get(messengerSenderID=self.senderID),message=message)
-    
+        Conversation.objects.create(sender=Sender.objects.get(sender_id=self.sender_id),message=message)
+
     def __delitem__(self, index):
         try:
-            convs = Conversation.objects.filter(sender__messengerSenderID=self.senderID)
+            convs = Conversation.objects.filter(sender__sender_id=self.sender_id)
             (convs[index] if index <0 else convs.order_by('-id')[-index]).delete()
         except:raise IndexError("list index out of range")
-        
-        
+
     def pop(self):
         try:
-            Conversation.objects.filter(sender__messengerSenderID=self.senderID)
+            Conversation.objects.filter(sender__sender_id=self.sender_id)
             conv = convs.order_by('-id')[0]
             message = conv.message
             conv.delete()
@@ -154,121 +155,114 @@ class UserConversation:
         except:IndexError("pop from empty list")
 
     def __contains__(self, message):
-        return Conversation.objects.filter(sender__messengerSenderID=self.senderID,message=message)
+        return Conversation.objects.filter(sender__sender_id=self.sender_id,message=message)
 
 class UserTopic:
 
     def __init__(self,*args, **kwargs):
         self.update(*args, **kwargs)
 
-    def __getitem__(self, senderID):
+    def __getitem__(self, sender_id):
         try:
-            return Sender.objects.get(messengerSenderID=senderID).topic
+            return Sender.objects.get(sender_id=sender_id).topic
         except:raise KeyError(key)
 
-    def __setitem__(self, senderID, topic):
+    def __setitem__(self, sender_id, topic):
         try:
-            sender = Sender.objects.get(messengerSenderID=senderID)
+            sender = Sender.objects.get(sender_id=sender_id)
             sender.topic = topic
             sender.save()
-        except:Sender.objects.create(messengerSenderID=senderID,topic = topic)
-    
+        except:Sender.objects.create(sender_id=sender_id,topic = topic)
+
     def update(self, *args, **kwargs):
-        for k, v in dict(*args, **kwargs).iteritems():
+        for k, v in dict(*args, **kwargs).items():
             self[k] = v
-    
-    def __delitem__(self, senderID):
-        try:return Sender.objects.get(messengerSenderID=senderID).delete()
+
+    def __delitem__(self, sender_id):
+        try:return Sender.objects.get(sender_id=sender_id).delete()
         except:pass
-        
-    def __contains__(self, senderID):
-        return Sender.objects.filter(messengerSenderID=senderID)   
-        
+
+    def __contains__(self, sender_id):
+        return Sender.objects.filter(sender_id=sender_id)
+
+
 class UserSession:
 
     def __init__(self,objClass, *args, **kwargs):
         self.objClass = objClass
         self.update(*args, **kwargs)
 
-    def __getitem__(self, senderID):
+    def __getitem__(self, sender_id):
         try:
-            return self.objClass(Sender.objects.get(messengerSenderID=senderID).messengerSenderID)
+            return self.objClass(Sender.objects.get(sender_id=sender_id).sender_id)
         except:raise KeyError(key)
 
-    def __setitem__(self, senderID, val):
-        Sender.objects.get_or_create(messengerSenderID=senderID)
-        self.objClass(senderID,val)
+    def __setitem__(self, sender_id, val):
+        Sender.objects.get_or_create(sender_id=sender_id)
+        self.objClass(sender_id,val)
 
     def update(self, *args, **kwargs):
-        for k, v in dict(*args, **kwargs).iteritems():
+        for k, v in dict(*args, **kwargs).items():
             self[k] = v
-    
-    def __delitem__(self, senderID):
-        try:return Sender.objects.get(messengerSenderID=senderID).delete()
+
+    def __delitem__(self, sender_id):
+        try:return Sender.objects.get(sender_id=sender_id).delete()
         except:raise KeyError(key)
-        
-    def __contains__(self, senderID):
-        return Sender.objects.filter(messengerSenderID=senderID)
+
+    def __contains__(self, sender_id):
+        return Sender.objects.filter(sender_id=sender_id)
 
 
 class myChat(Chat):
 
     def __init__(self, *arg, **karg):
-        super(myChat, self).__init__(*arg, **karg) 
+        super(myChat, self).__init__(*arg, **karg)
         self._memory = UserSession(UserMemory,self._memory)
         self.conversation = UserSession(UserConversation,self.conversation)
         self.topic.topic = UserTopic(self.topic.topic)
-        #self._pairs = {'*':[]}
-        #self._reflections = reflections
-        #self._regex = self._compile_reflections()
-    
-try:
-    chat=myChat(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                           "chatbotTemplate",
-                           "Example.template"
-                           ),
-              reflections,
-              call=call)
-except OperationalError:#No DB exist
-    chat =  Chat(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                           "chatbotTemplate",
-                           "Example.template"
-                           ),
-              reflections,
-              call=call)
 
-def initiateChat(senderID):
-    chat._startNewSession(senderID)
-    chat.conversation[senderID].append('Say "Hello"')
+
+template_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                  "chatbotTemplate",
+                                  "Example.template"
+                                 )
+try:
+    chat=myChat(template_file_path)
+except OperationalError:#No DB exist
+    chat =  Chat(template_file_path)
+
+def initiate_chat(sender_id):
+    chat.start_new_session(sender_id)
+    chat.conversation[sender_id].append('Say "Hello"')
     #Get Name of User from facebook
-    url = "https://graph.facebook.com/v2.6/" + senderID +\
+    url = "https://graph.facebook.com/v2.6/" + sender_id +\
           "?fields=first_name,last_name,gender&access_token="+ access_token
     userInfo=json.load(urllib.urlopen(url))
     userInfo["name"] = userInfo["first_name"]
-    chat._memory[senderID].update(userInfo)
+    chat._memory[sender_id].update(userInfo)
 
-def respondToClient(senderID,message):
-    recipient = messages.Recipient(recipient_id=senderID)
-    chat.attr[senderID]={"match":None,"pmatch":None,"_quote": False}
-    chat.conversation[senderID].append(message)
+def respond_to_client(sender_id,message):
+    recipient = messages.Recipient(recipient_id=sender_id)
+    chat.attr[sender_id]={"match":None,"pmatch":None,"_quote": False}
+    chat.conversation[sender_id].append(message)
     message = message.rstrip(".! \n\t")
-    result = chat.respond(message,sessionID=senderID)
-    chat.conversation[senderID].append(result)
+    result = chat.respond(message,session_id=sender_id)
+    chat.conversation[sender_id].append(result)
     response = messages.MessageRequest(recipient, messages.Message(text=result))
     #send message to Messenger
     messenger.send(response)
-    del chat.attr[senderID]
+    del chat.attr[sender_id]
 
 def chathandler(request):
     data = json.loads(request.body)
     # Send text message
     for i in data["entry"][0]["messaging"]:
         if "message" in i:
-            senderID=i["sender"]['id']
-            if not senderID in chat.conversation:
+            sender_id=i["sender"]['id']
+            if not sender_id in chat.conversation:
                 #Initiate user info
-                initiateChat(senderID)
-            respondToClient(senderID,i["message"]["text"])
+                initiate_chat(sender_id)
+            respond_to_client(sender_id,i["message"]["text"])
     return HttpResponse("It's working")
 
 @csrf_exempt
@@ -279,10 +273,3 @@ def webhook(request):
             return HttpResponse(request.GET['hub.challenge'])
         return HttpResponse("Failed validation. Make sure the validation tokens match.")
     return chathandler(request)
-
-
-
-
-
-
-
