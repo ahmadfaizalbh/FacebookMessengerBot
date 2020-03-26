@@ -1,7 +1,8 @@
-from chatbot import Chat,reflections,multiFunctionCall
+from chatbot import Chat, , register_call
 import wikipedia
 
-def whoIs(query,session_id="general"):
+@register_call("whoIs")
+def who_is(query,session_id="general"):
     try:
         return wikipedia.summary(query)
     except:
@@ -11,22 +12,18 @@ def whoIs(query,session_id="general"):
             except:
                 pass
     return "I don't know about "+query
-        
-    
 
-call = multiFunctionCall({"whoIs":whoIs})
-firstQuestion="Hi, how are you?"
-chat=Chat("Example.template", reflections,call=call)
+
+chat=Chat("Example.template")
 
 sender_id="1,2,3"
-chat._startNewSession(sender_id)             
+chat.start_new_session(sender_id)
 chat.conversation[sender_id].append('Say "Hello"')
-#firstQuestion='Say "Hello"'
-#chat.converse(firstQuestion,session_id=sender_id)
+
 message=""
 while message!="bye":
-    message=raw_input(">")
+    message=input(">")
     chat.conversation[sender_id].append(message)
-    result = chat.respond(message,session_id=sender_id)               
+    result = chat.respond(message,session_id=sender_id)
     chat.conversation[sender_id].append(result)
-    print result
+    print(result)
