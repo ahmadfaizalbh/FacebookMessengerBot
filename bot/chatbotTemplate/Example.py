@@ -1,4 +1,4 @@
-from chatbot import Chat, , register_call
+from chatbot import Chat, register_call
 import wikipedia
 
 @register_call("whoIs")
