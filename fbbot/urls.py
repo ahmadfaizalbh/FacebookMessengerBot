@@ -15,10 +15,10 @@ Including another URLconf
 """
 from django.conf.urls import url
 from django.contrib import admin
-from bot.views import *
+from bot.views import index, web_hook
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^$',index,name="home"),
-    url(r'^webhook',webhook,name="webhook"),
+    url(r'^$', index, name="home"),
+    url(r'^webhook', web_hook, name="webhook"),
 ]

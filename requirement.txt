@@ -1,0 +1,7 @@
+django==3.1
+chatbotai==0.2.2.1
+django-chatbot==0.0.1
+messengerbot==0.1.4
+requests==2.22.0
+wikipedia==1.4.0
+
