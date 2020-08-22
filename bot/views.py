@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from messengerbot import MessengerClient, messages
 from chatbot import register_call
-from django.chatbot import chat
+from django.chatbot.chatbot import chat
 from django.conf import settings
 import json
 import wikipedia
@@ -75,7 +75,6 @@ def what_is(query, session_id="general"):
 
 def initiate_chat(sender_id):
     chat.start_new_session(sender_id)
-    chat.conversation[sender_id].append('Say "Hello"')
     # Get Name of User from facebook
     url = "https://graph.facebook.com/v2.6/" + sender_id +\
           "?fields=first_name,last_name,gender&access_token=" + settings.ACCESS_TOKEN
@@ -86,15 +85,10 @@ def initiate_chat(sender_id):
 
 def respond_to_client(sender_id, message):
     recipient = messages.Recipient(recipient_id=sender_id)
-    chat.attr[sender_id] = {"match": None, "pmatch": None, "_quote": False}
-    chat.conversation[sender_id].append(message)
-    message = message.rstrip(".! \n\t")
     result = chat.respond(message, session_id=sender_id)
-    chat.conversation[sender_id].append(result)
     response = messages.MessageRequest(recipient, messages.Message(text=result))
     # send message to Messenger
     messenger.send(response)
-    del chat.attr[sender_id]
 
 
 def chat_handler(request):

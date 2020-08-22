@@ -120,6 +120,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 
 STATIC_URL = '/static/'
+START_MESSAGE = 'Say "Hello"'
 CHATBOT_TEMPLATE = os.path.join(BASE_DIR, "chatbotTemplate", "Example.template")
 ACCESS_TOKEN = "< Access token >"
 VALIDATION_TOKEN = "< VALIDATION_TOKEN >"
