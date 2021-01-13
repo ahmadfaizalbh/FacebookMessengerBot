@@ -46,22 +46,22 @@ def about(query, qtype=None):
 
 
 @register_call("tellMeAbout")
-def tell_me_about(query, session_id="general"):
+def tell_me_about(session, query):
     return about(query)
 
 
 @register_call("whoIs")
-def who_is(query, session_id="general"):
+def who_is(session, query):
     return about(query, qtype="Person")
 
 
 @register_call("whereIs")
-def where_is(query, session_id="general"):
+def where_is(session, query):
     return about(query, qtype="Place")
 
 
 @register_call("whatIs")
-def what_is(query, session_id="general"):
+def what_is(session, query):
     try:
         return wikipedia.summary(query)
     except Exception:
@@ -80,7 +80,7 @@ def initiate_chat(sender_id):
           "?fields=first_name,last_name,gender&access_token=" + settings.ACCESS_TOKEN
     user_info = json.load(urllib.request.urlopen(url))
     user_info["name"] = user_info["first_name"]
-    chat._memory[sender_id].update(user_info)
+    chat.memory[sender_id].update(user_info)
 
 
 def respond_to_client(sender_id, message):
@@ -92,7 +92,7 @@ def respond_to_client(sender_id, message):
 
 
 def chat_handler(request):
-    data = json.loads(request.body)
+    data = json.loads(request.body.decode('utf-8'))
     # Send text message
     for i in data["entry"][0]["messaging"]:
         if "message" in i:
