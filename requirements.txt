@@ -1,4 +1,4 @@
-django==3.1
+django==3.1.8
 chatbotai==0.3.0.0
 django-chatbot==0.0.2.2
 messengerbot==0.1.4
